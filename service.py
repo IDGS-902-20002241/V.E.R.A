@@ -1,11 +1,13 @@
 import base64
 import cv2
 import numpy as np
-from insightface.app import FaceAnalysis
+import easyocr
+import re # Importante para limpiar el texto
 
-class Helpers:
-    def __init__(self, face_app: FaceAnalysis):
-        self.face_app = face_app
+class HelpersPlate:
+    def __init__(self):
+        # Inicializamos el lector de EasyOCR
+        self.reader = easyocr.Reader(['es', 'en'], gpu=False)
 
     def base64_to_cv2(self, b64_str: str):
         try:
@@ -17,17 +19,37 @@ class Helpers:
         except Exception:
             return None
 
-    def get_embedding(self, img) -> np.ndarray | None:
-        faces = self.face_app.get(img)
-        if not faces:
+    def get_plate_text(self, img) -> str | None:
+        """
+        Analiza la imagen, filtra las palabras genéricas y devuelve el texto de la placa.
+        """
+        results = self.reader.readtext(img)
+        if not results:
             return None
-        face = max(faces, key=lambda f: (f.bbox[2]-f.bbox[0]) * (f.bbox[3]-f.bbox[1]))
-        return face.normed_embedding
+        
+        valid_plates = []
 
-    @staticmethod
-    def embedding_to_list(emb: np.ndarray) -> list:
-        return emb.tolist()
+        # Analizar cada texto detectado en la imagen
+        for bbox, text, conf in results:
+            # 1. Limpiar el texto: quitar espacios, guiones y dejar solo letras mayúsculas y números
+            clean_text = re.sub(r'[^A-Z0-9]', '', text.upper())
 
-    @staticmethod
-    def list_to_embedding(lst: list) -> np.ndarray:
-        return np.array(lst, dtype=np.float32)
+            # 2. Aplicar reglas (Heurística) de una placa vehicular
+            # - Debe medir entre 5 y 9 caracteres
+            # - Debe contener al menos un número (descarta palabras como "GUANAJUATO" o "MEXICO")
+            # - Debe contener al menos una letra
+            tiene_longitud = 5 <= len(clean_text) <= 9
+            tiene_numeros = any(char.isdigit() for char in clean_text)
+            tiene_letras = any(char.isalpha() for char in clean_text)
+
+            if tiene_longitud and tiene_numeros and tiene_letras:
+                valid_plates.append((clean_text, conf))
+
+        # Si después de filtrar no quedó ninguna placa válida, retornamos None
+        if not valid_plates:
+            return None
+        
+        # De las placas válidas encontradas, seleccionamos la que tenga mayor nivel de confianza
+        best_match = max(valid_plates, key=lambda x: x[1])
+        
+        return best_match[0]
