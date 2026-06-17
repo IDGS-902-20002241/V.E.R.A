@@ -1,37 +1,20 @@
-import base64
 import requests
 
-# Función para convertir un archivo de audio .wav a texto Base64
-def audio_a_base64(ruta_archivo):
-    with open(ruta_archivo, "rb") as archivo_audio:
-        encoded_string = base64.b64encode(archivo_audio.read())
-        return encoded_string.decode('utf-8')
+URL_REGISTRO_LIVE = "http://localhost:5001/register_voice_live"
+URL_MATCH_LIVE = "http://localhost:5001/match_voice_live"
 
-# URL de tu API local (Puerto 5001)
-URL_REGISTRO = "http://localhost:5001/register_voice"
-URL_MATCH = "http://localhost:5001/match_voice"
+print("🤖 --- MÓDULO DE PRUEBAS 100% HARDWARE (VERA) ---")
+print("1. Registrar mi voz (Desde el micrófono del Arduino)")
+print("2. Intentar acceso (Evaluar en tiempo real)")
+opcion = input("Selecciona una opción (1 o 2): ")
 
-# --- PRUEBA 1: REGISTRAR UNA VOZ ---
-print("--- Registrando usuario en la Base de Datos ---")
-audio_reg_b64 = audio_a_base64("mi_voz_registro.wav") 
+payload = {"id": "alumno_20001575"}
 
-payload_registro = {
-    "voices": [
-        {"id": "alumno_20002241", "base64": audio_reg_b64}
-    ]
-}
-
-response_reg = requests.post(URL_REGISTRO, json=payload_registro)
-print("Respuesta Servidor:", response_reg.json())
-
-
-# --- PRUEBA 2: INTENTAR ACCESO (MATCH) ---
-print("\n--- Intentando marcar acceso ---")
-audio_match_b64 = audio_a_base64("mi_voz_intento.wav") 
-
-payload_match = {
-    "target_audio": audio_match_b64
-}
-
-response_match = requests.post(URL_MATCH, json=payload_match)
-print("Respuesta Servidor:", response_match.json())
+if opcion == "1":
+    print("\nSolicitando al servidor que lea el pin A0 para REGISTRO...")
+    res = requests.post(URL_REGISTRO_LIVE, json=payload)
+    print("Respuesta Servidor:", res.json())
+elif opcion == "2":
+    print("\nSolicitando al servidor que lea el pin A0 para VERIFICACIÓN...")
+    res = requests.post(URL_MATCH_LIVE, json=payload)
+    print("Respuesta Servidor:", res.json())

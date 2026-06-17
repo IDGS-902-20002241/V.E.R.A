@@ -1,4 +1,19 @@
+# Python carpetas temporales
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Entornos virtuales (por si usas uno)
+venv/
+.venv/
+env/
+
+# Archivos de audio locales que se generen en pruebas
 *.wav
-.env
+*.mp3
+
+# Configuración de editores
+.vscode/
+.idea/
